@@ -38,12 +38,17 @@ class RepositoriesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setHasFixedSize()
         setRvRepositoriesAdapter()
         setVerticalItemDecoration()
         setTvEmptyListClickListener()
         setRepositoriesCollect()
         setLoadingCollect()
         repositoryViewModel.getRepositories(args.id)
+    }
+
+    private fun setHasFixedSize() {
+        binding.rvRepositories.setHasFixedSize(true)
     }
 
     private fun setRvRepositoriesAdapter() {
