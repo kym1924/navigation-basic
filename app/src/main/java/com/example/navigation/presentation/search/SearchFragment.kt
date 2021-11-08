@@ -1,6 +1,7 @@
 package com.example.navigation.presentation.search
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -25,7 +26,7 @@ class SearchFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setBackButtonClickListener()
-        setImeOptionEditorActionListener()
+        initEtSearchIdListener()
     }
 
     private fun setBackButtonClickListener() {
@@ -34,24 +35,33 @@ class SearchFragment : Fragment() {
         }
     }
 
-    private fun setImeOptionEditorActionListener() {
+    private fun initEtSearchIdListener() {
         binding.etSearchId.setOnEditorActionListener { _, actionId, _ ->
-            when (actionId) {
-                EditorInfo.IME_ACTION_SEARCH -> {
-                    if (binding.etSearchId.text.toString().isNotBlank()) {
-                        actionToRepositoriesFragment()
-                    }
-                    true
-                }
-                else -> false
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                actionToRepositoriesFragment()
+                true
+            } else {
+                false
+            }
+        }
+
+        binding.etSearchId.setOnKeyListener { _, keyCode, keyEvent ->
+            if (keyEvent.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+                actionToRepositoriesFragment()
+                true
+            } else {
+                false
             }
         }
     }
 
     private fun actionToRepositoriesFragment() {
-        val action =
-            SearchFragmentDirections.actionSearchFragmentToRepositoriesFragment(binding.etSearchId.text.toString())
-        findNavController().navigate(action)
+        val query = binding.etSearchId.text.toString()
+        if (query.isNotBlank()) {
+            val action =
+                SearchFragmentDirections.actionSearchFragmentToRepositoriesFragment(query)
+            findNavController().navigate(action)
+        }
     }
 
     override fun onDestroyView() {
