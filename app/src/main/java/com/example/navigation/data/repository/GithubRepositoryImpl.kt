@@ -8,7 +8,7 @@ import javax.inject.Inject
 class GithubRepositoryImpl @Inject constructor(
     private val githubService: GithubService
 ) : GithubRepository {
-    override suspend fun getUserRepositories(id: String) = flow {
+    override fun getUserRepositories(id: String) = flow<List<GithubRepositoryData>> {
         runCatching {
             githubService.getUserRepositories(id)
         }.onSuccess { repositories ->
