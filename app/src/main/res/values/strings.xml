@@ -3,4 +3,5 @@
     <string name="search">Search</string>
     <string name="github_id">Github ID</string>
     <string name="empty_search_result">No Search results were found.\nPlease try again.</string>
+    <string name="retry">Retry</string>
 </resources>

@@ -6,18 +6,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.RecyclerView
 import com.example.navigation.R
 import com.example.navigation.databinding.FragmentRepositoriesBinding
+import com.example.navigation.util.repeatOnLifecycle
+import com.example.navigation.util.visibleOrNot
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filter
 
 @AndroidEntryPoint
 class RepositoriesFragment : Fragment() {
@@ -38,68 +40,51 @@ class RepositoriesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setHasFixedSize()
-        setRvRepositoriesAdapter()
-        setVerticalItemDecoration()
+        initRecyclerView()
+        initCollect()
         setTvEmptyListClickListener()
-        setRepositoriesCollect()
-        setLoadingCollect()
-        repositoryViewModel.getRepositories(args.id)
     }
 
-    private fun setHasFixedSize() {
-        binding.rvRepositories.setHasFixedSize(true)
+    private fun initRecyclerView() {
+        with(binding.rvRepositories) {
+            setHasFixedSize(true)
+            adapter = repositoriesAdapter.withLoadStateHeaderAndFooter(
+                header = RepositoriesLoadAdapter { repositoriesAdapter.retry() },
+                footer = RepositoriesLoadAdapter { repositoriesAdapter.retry() }
+            )
+            addItemDecoration(DividerItemDecoration(requireContext(), RecyclerView.VERTICAL))
+        }
     }
 
-    private fun setRvRepositoriesAdapter() {
-        binding.rvRepositories.adapter = repositoriesAdapter
-    }
+    private fun initCollect() {
+        repeatOnLifecycle {
+            repositoryViewModel.pagingRepositories(args.id).collectLatest { list ->
+                repositoriesAdapter.submitData(list)
+            }
+        }
 
-    private fun setVerticalItemDecoration() {
-        binding.rvRepositories.addItemDecoration(
-            DividerItemDecoration(requireContext(), RecyclerView.VERTICAL)
-        )
+        repeatOnLifecycle {
+            repositoriesAdapter.loadStateFlow
+                .distinctUntilChangedBy { it.refresh }
+                .filter { it.refresh is LoadState.NotLoading }
+                .collect { binding.rvRepositories.scrollToPosition(0) }
+        }
+
+        repeatOnLifecycle {
+            repositoriesAdapter.loadStateFlow.collectLatest { loadState ->
+                val isListEmpty =
+                    loadState.refresh is LoadState.NotLoading && repositoriesAdapter.itemCount == 0
+                binding.rvRepositories.visibleOrNot(!isListEmpty)
+                binding.tvNoSearchResult.visibleOrNot(isListEmpty)
+                binding.loadingProgress.visibleOrNot(loadState.source.refresh is LoadState.Loading)
+                binding.tvRetry.visibleOrNot(loadState.source.refresh is LoadState.Error)
+            }
+        }
     }
 
     private fun setTvEmptyListClickListener() {
         binding.tvNoSearchResult.setOnClickListener {
             findNavController().navigate(R.id.action_repositoriesFragment_to_startFragment)
-        }
-    }
-
-    private fun setRepositoriesCollect() {
-        repeatOnLifecycle {
-            repositoryViewModel.repositories.collect { list ->
-                repositoriesAdapter.submitList(list) {
-                    setTvNoSearchResultVisibility(list.size)
-                }
-            }
-        }
-    }
-
-    private fun setTvNoSearchResultVisibility(size: Int) {
-        binding.tvNoSearchResult.visibility = when (size) {
-            0 -> View.VISIBLE
-            else -> View.INVISIBLE
-        }
-    }
-
-    private fun setLoadingCollect() {
-        repeatOnLifecycle {
-            repositoryViewModel.loading.collect { loading ->
-                binding.loadingProgress.visibility = when (loading) {
-                    true -> View.VISIBLE
-                    false -> View.INVISIBLE
-                }
-            }
-        }
-    }
-
-    private fun Fragment.repeatOnLifecycle(collect: suspend () -> Unit) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                collect()
-            }
         }
     }
 
