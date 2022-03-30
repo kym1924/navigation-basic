@@ -24,7 +24,7 @@ object NetworkModule {
             .addInterceptor(logger)
             .build()
 
-        return  Retrofit.Builder()
+        return Retrofit.Builder()
             .client(client)
             .baseUrl("https://api.github.com/")
             .addConverterFactory(GsonConverterFactory.create())

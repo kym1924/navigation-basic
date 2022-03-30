@@ -12,7 +12,8 @@ class RepositoriesAdapter :
     PagingDataAdapter<GithubRepositoryData, RepositoriesAdapter.RepositoriesViewHolder>(
         BaseDiffUtilItemCallback(
             itemsTheSame = { oldItem, newItem -> oldItem.name == newItem.name },
-            contentsTheSame = { oldItem, newItem -> oldItem == newItem })
+            contentsTheSame = { oldItem, newItem -> oldItem == newItem }
+        )
     ) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RepositoriesViewHolder {
